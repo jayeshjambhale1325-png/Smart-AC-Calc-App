@@ -47,7 +47,6 @@ import {
   CURRENCIES,
   CalcResult,
   DEFAULT_ELECTRICITY,
-  DIM_UNITS,
   DimUnit,
   ElectricitySettings,
   MultiUnitAdvisor,
@@ -150,6 +149,8 @@ function App() {
         <Stepper activeTab={activeTab} onChange={setActiveTab} t={t} />
         {activeTab === 1 && (
           <CalculatorSection
+            unit={unit}
+            onUnit={setUnit}
             onCalculate={handleCalculate}
             lang={lang}
             t={t}
@@ -351,15 +352,19 @@ const ROOM_PRESETS: RoomPreset[] = [
 ];
 
 function CalculatorSection({
+  unit,
+  onUnit,
   onCalculate,
   lang,
   t,
 }: {
+  unit: UnitSystem;
+  onUnit: (u: UnitSystem) => void;
   onCalculate: (r: CalcResult) => void;
   lang: Language;
   t: TFunc;
 }) {
-  const [dimUnit, setDimUnit] = useState<DimUnit>('ft');
+  const dimUnit: DimUnit = unit === 'metric' ? 'm' : 'ft';
   const [lengthVal, setLengthVal] = useState<string>('');
   const [widthVal, setWidthVal] = useState<string>('');
   const [heightVal, setHeightVal] = useState<string>('10');
@@ -370,7 +375,7 @@ function CalculatorSection({
   const [priority, setPriority] = useState<Priority>('electricity');
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
-  const unitShort = t(`unit${dimUnit === 'ft' ? 'Ft' : dimUnit === 'm' ? 'M' : 'In'}`);
+  const unitShort = t(`unit${dimUnit === 'm' ? 'M' : 'Ft'}`);
 
   const convertPreset = (ft: number, target: DimUnit): string => {
     if (target === 'ft') return String(ft);
@@ -379,7 +384,7 @@ function CalculatorSection({
   };
 
   useEffect(() => {
-    setHeightVal(dimUnit === 'm' ? '3' : dimUnit === 'in' ? '120' : '10');
+    setHeightVal(dimUnit === 'm' ? '3' : '10');
   }, [dimUnit]);
 
   const lenNum = parseFloat(lengthVal);
@@ -419,9 +424,9 @@ function CalculatorSection({
     onCalculate(res);
   };
 
-  const placeholderLen = dimUnit === 'm' ? 'e.g. 4.2' : dimUnit === 'in' ? 'e.g. 168' : 'e.g. 14';
-  const placeholderWid = dimUnit === 'm' ? 'e.g. 3.6' : dimUnit === 'in' ? 'e.g. 144' : 'e.g. 12';
-  const placeholderHgt = dimUnit === 'm' ? 'e.g. 3' : dimUnit === 'in' ? 'e.g. 120' : 'e.g. 10';
+  const placeholderLen = dimUnit === 'm' ? 'e.g. 4.2' : 'e.g. 14';
+  const placeholderWid = dimUnit === 'm' ? 'e.g. 3.6' : 'e.g. 12';
+  const placeholderHgt = dimUnit === 'm' ? 'e.g. 3' : 'e.g. 10';
 
   return (
     <div className="mt-6 grid gap-4 sm:mt-8 sm:gap-6 lg:grid-cols-2">
@@ -435,18 +440,8 @@ function CalculatorSection({
               {t('roomDimensions')}
             </h2>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={dimUnit}
-              onChange={(e) => setDimUnit(e.target.value as DimUnit)}
-              className="rounded-lg border border-cool-200 bg-cool-50 px-2.5 py-1.5 text-xs font-semibold text-cool-700 outline-none dark:border-cool-700 dark:bg-cool-900 dark:text-cool-200"
-            >
-              {DIM_UNITS.map((u) => (
-                <option key={u.code} value={u.code}>
-                  {t(u.labelKey)}
-                </option>
-              ))}
-            </select>
+          <div className="inline-flex w-fit rounded-lg border border-cool-200 bg-cool-50 p-1 dark:border-cool-700 dark:bg-cool-900">
+            <UnitToggle unit={unit} onUnit={onUnit} t={t} />
           </div>
         </div>
 
