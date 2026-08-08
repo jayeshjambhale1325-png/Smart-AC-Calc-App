@@ -1,0 +1,66 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    font-family: 'Inter', 'Noto Sans Devanagari', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    overscroll-behavior-y: none;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+@layer components {
+  .input-field {
+    @apply w-full rounded-xl border border-cool-200 bg-white px-4 py-3.5 text-base text-cool-900 placeholder-cool-400 shadow-sm transition-all duration-200 focus:border-cool-500 focus:outline-none focus:ring-2 focus:ring-cool-200 hover:border-cool-300 dark:border-cool-700 dark:bg-cool-900 dark:text-cool-50 dark:placeholder-cool-500 dark:focus:border-cool-400 dark:focus:ring-cool-800 dark:hover:border-cool-600;
+  }
+  .label-text {
+    @apply mb-1.5 block text-sm font-semibold text-cool-700 dark:text-cool-200;
+  }
+  .card {
+    @apply rounded-2xl border border-cool-100 bg-white shadow-card dark:border-cool-800 dark:bg-cool-950;
+  }
+  .btn-primary {
+    @apply inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cool-600 px-6 py-3.5 text-base font-semibold text-white shadow-sm transition-all duration-200 hover:bg-cool-700 hover:shadow-glow active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto;
+  }
+  .btn-secondary {
+    @apply inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cool-200 bg-white px-6 py-3.5 text-base font-semibold text-cool-700 shadow-sm transition-all duration-200 hover:border-cool-300 hover:bg-cool-50 active:scale-[0.98] dark:border-cool-700 dark:bg-cool-900 dark:text-cool-100 dark:hover:bg-cool-800 sm:w-auto;
+  }
+}
+
+@media (max-width: 639px) {
+  .card {
+    @apply rounded-xl;
+  }
+  button {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #bae6fd;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #7dd3fc;
+}
