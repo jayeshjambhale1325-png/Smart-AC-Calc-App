@@ -150,8 +150,6 @@ function App() {
         <Stepper activeTab={activeTab} onChange={setActiveTab} t={t} />
         {activeTab === 1 && (
           <CalculatorSection
-            unit={unit}
-            onUnit={setUnit}
             onCalculate={handleCalculate}
             lang={lang}
             t={t}
@@ -353,14 +351,10 @@ const ROOM_PRESETS: RoomPreset[] = [
 ];
 
 function CalculatorSection({
-  unit,
-  onUnit,
   onCalculate,
   lang,
   t,
 }: {
-  unit: UnitSystem;
-  onUnit: (u: UnitSystem) => void;
   onCalculate: (r: CalcResult) => void;
   lang: Language;
   t: TFunc;
@@ -453,9 +447,6 @@ function CalculatorSection({
                 </option>
               ))}
             </select>
-            <div className="inline-flex w-fit rounded-lg border border-cool-200 bg-cool-50 p-1 dark:border-cool-700 dark:bg-cool-900">
-              <UnitToggle unit={unit} onUnit={onUnit} t={t} />
-            </div>
           </div>
         </div>
 
