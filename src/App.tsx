@@ -40,6 +40,8 @@ import {
   PiggyBank,
   Receipt,
   Globe,
+  Camera,
+  Loader2,
 } from 'lucide-react';
 import {
   ACModel,
@@ -374,6 +376,10 @@ function CalculatorSection({
   const [occupants, setOccupants] = useState<string>('2');
   const [priority, setPriority] = useState<Priority>('electricity');
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanError, setScanError] = useState('');
+  const [scanPreview, setScanPreview] = useState('');
+  const [scanEstimated, setScanEstimated] = useState(false);
 
   const unitShort = t(`unit${dimUnit === 'm' ? 'M' : 'Ft'}`);
 
@@ -413,6 +419,56 @@ function CalculatorSection({
     setTouched({});
   };
 
+  const handleRoomScan = async (file: File) => {
+    setScanError('');
+    setScanEstimated(false);
+    if (!file.type.match(/^image\/(jpeg|jpg|png|webp)$/)) {
+      setScanError('Please choose a JPG, PNG, or WebP room image.');
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setScanError('Please choose an image smaller than 8 MB.');
+      return;
+    }
+
+    const image = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    setScanPreview(image);
+    setScanLoading(true);
+
+    try {
+      const response = await fetch('/api/analyze-room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image }),
+      });
+      const data = await response.json() as {
+        lengthMeters?: number;
+        widthMeters?: number;
+        ceilingHeightMeters?: number;
+        sunlight?: SunExposure;
+        error?: string;
+      };
+      if (!response.ok) throw new Error(data.error || 'Unable to analyze this photo.');
+
+      const fromMeters = (meters: number) => dimUnit === 'm' ? meters.toFixed(1) : (meters * 3.28084).toFixed(1);
+      setLengthVal(fromMeters(data.lengthMeters ?? 0));
+      setWidthVal(fromMeters(data.widthMeters ?? 0));
+      setHeightVal(fromMeters(data.ceilingHeightMeters ?? 0));
+      if (data.sunlight) setSunExposure(data.sunlight);
+      setScanEstimated(true);
+      setTouched({});
+    } catch (error) {
+      setScanError(error instanceof Error ? error.message : 'Unable to analyze this photo.');
+    } finally {
+      setScanLoading(false);
+    }
+  };
+
   const handleCalculate = () => {
     setTouched({ length: true, width: true, height: true, occupants: true });
     if (!lenNum || !widNum || !ceilNum || lenNum <= 0 || widNum <= 0 || ceilNum <= 0) return;
@@ -443,6 +499,46 @@ function CalculatorSection({
           <div className="inline-flex w-fit rounded-lg border border-cool-200 bg-cool-50 p-1 dark:border-cool-700 dark:bg-cool-900">
             <UnitToggle unit={unit} onUnit={onUnit} t={t} />
           </div>
+        </div>
+
+        <div className="mb-5 rounded-2xl border border-cool-200 bg-cool-50/70 p-3 dark:border-cool-700 dark:bg-cool-900/50">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              {scanPreview ? (
+                <img src={scanPreview} alt="Uploaded room preview" className="h-12 w-12 rounded-xl object-cover" />
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cool-200 text-cool-700 dark:bg-cool-800 dark:text-cool-200">
+                  <Camera className="h-6 w-6" />
+                </div>
+              )}
+              <div>
+                <p className="text-sm font-bold text-cool-800 dark:text-cool-100">Auto-Fill Dimensions from Room Photo</p>
+                <p className="text-xs text-cool-500 dark:text-cool-400">Use a clear photo with a door, window, or furniture visible.</p>
+              </div>
+            </div>
+            <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-cool-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-cool-800 has-[:disabled]:cursor-wait has-[:disabled]:opacity-70 dark:bg-cool-200 dark:text-cool-900 dark:hover:bg-cool-100">
+              {scanLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+              {scanLoading ? 'Analyzing photo...' : 'Take photo or upload'}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                capture="environment"
+                className="sr-only"
+                disabled={scanLoading}
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void handleRoomScan(file);
+                  event.currentTarget.value = '';
+                }}
+              />
+            </label>
+          </div>
+          {scanEstimated && (
+            <p className="mt-3 rounded-lg bg-emerald-100 px-3 py-2 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
+              Dimensions estimated via AI. You can manually adjust if needed.
+            </p>
+          )}
+          {scanError && <p className="mt-3 text-xs font-medium text-red-500 dark:text-red-400">{scanError}</p>}
         </div>
 
         <div className="mb-5">
