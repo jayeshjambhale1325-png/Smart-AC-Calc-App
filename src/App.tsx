@@ -422,21 +422,46 @@ function CalculatorSection({
   const handleRoomScan = async (file: File) => {
     setScanError('');
     setScanEstimated(false);
-    if (!file.type.match(/^image\/(jpeg|jpg|png|webp)$/)) {
+    if (!file.type.startsWith('image/')) {
       setScanError('Please choose a JPG, PNG, or WebP room image.');
       return;
     }
-    if (file.size > 8 * 1024 * 1024) {
-      setScanError('Please choose an image smaller than 8 MB.');
+    if (file.size > 12 * 1024 * 1024) {
+      setScanError('Please choose an image smaller than 12 MB.');
       return;
     }
 
-    const image = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result));
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
+    let image: string;
+    try {
+      image = await new Promise<string>((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file);
+      const preview = new Image();
+      preview.onload = () => {
+        const maxSize = 1600;
+        const scale = Math.min(1, maxSize / Math.max(preview.naturalWidth, preview.naturalHeight));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(preview.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(preview.naturalHeight * scale));
+        const context = canvas.getContext('2d');
+        if (!context) {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error('Your browser could not prepare this image.'));
+          return;
+        }
+        context.drawImage(preview, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(objectUrl);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      preview.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('This image could not be opened. Please choose another photo.'));
+      };
+        preview.src = objectUrl;
+      });
+    } catch (error) {
+      setScanError(error instanceof Error ? error.message : 'This image could not be prepared.');
+      return;
+    }
     setScanPreview(image);
     setScanLoading(true);
 
@@ -502,27 +527,44 @@ function CalculatorSection({
         </div>
 
         <div className="mb-5 rounded-2xl border border-cool-200 bg-cool-50/70 p-3 dark:border-cool-700 dark:bg-cool-900/50">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              {scanPreview ? (
-                <img src={scanPreview} alt="Uploaded room preview" className="h-12 w-12 rounded-xl object-cover" />
-              ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cool-200 text-cool-700 dark:bg-cool-800 dark:text-cool-200">
-                  <Camera className="h-6 w-6" />
-                </div>
-              )}
-              <div>
-                <p className="text-sm font-bold text-cool-800 dark:text-cool-100">Auto-Fill Dimensions from Room Photo</p>
-                <p className="text-xs text-cool-500 dark:text-cool-400">Use a clear photo with a door, window, or furniture visible.</p>
+          <div className="flex items-start gap-3">
+            {scanPreview ? (
+              <img src={scanPreview} alt="Uploaded room preview" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+            ) : (
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-cool-200 text-cool-700 dark:bg-cool-800 dark:text-cool-200">
+                <Camera className="h-7 w-7" />
               </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-cool-800 dark:text-cool-100">Auto-Fill Dimensions from Room Photo</p>
+              <p className="mt-1 text-xs text-cool-500 dark:text-cool-400">Use a clear photo with a door, window, or furniture visible.</p>
             </div>
-            <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-cool-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-cool-800 has-[:disabled]:cursor-wait has-[:disabled]:opacity-70 dark:bg-cool-200 dark:text-cool-900 dark:hover:bg-cool-100">
-              {scanLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-              {scanLoading ? 'Analyzing photo...' : 'Take photo or upload'}
+          </div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-cool-700 px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-cool-800 has-[:disabled]:cursor-wait has-[:disabled]:opacity-70 dark:bg-cool-200 dark:text-cool-900 dark:hover:bg-cool-100">
+              <Camera className="h-4 w-4" />
+              Take Live Room Photo
+              <input
+                id="room-camera-input"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="sr-only"
+                disabled={scanLoading}
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void handleRoomScan(file);
+                  else setScanError('Camera access unavailable. Please choose an existing photo from your gallery.');
+                  event.currentTarget.value = '';
+                }}
+              />
+            </label>
+            <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-cool-300 bg-background px-3 py-2.5 text-sm font-semibold text-cool-700 shadow-sm transition hover:bg-cool-100 has-[:disabled]:cursor-wait has-[:disabled]:opacity-70 dark:border-cool-600 dark:text-cool-200 dark:hover:bg-cool-800">
+              <span aria-hidden="true">📁</span>
+              Upload from Gallery
               <input
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
-                capture="environment"
+                accept="image/*"
                 className="sr-only"
                 disabled={scanLoading}
                 onChange={(event) => {
@@ -533,6 +575,22 @@ function CalculatorSection({
               />
             </label>
           </div>
+          {scanLoading && (
+            <div className="mt-3 flex items-center gap-2 rounded-lg bg-cool-100 px-3 py-2 text-xs font-semibold text-cool-700 dark:bg-cool-800 dark:text-cool-200">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Scanning room perspective &amp; detecting dimensions...
+            </div>
+          )}
+          {scanPreview && !scanLoading && (
+            <button
+              type="button"
+              className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-cool-700 underline-offset-2 hover:underline dark:text-cool-200"
+              onClick={() => document.getElementById('room-camera-input')?.click()}
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Retake / Choose Different Photo
+            </button>
+          )}
           {scanEstimated && (
             <p className="mt-3 rounded-lg bg-emerald-100 px-3 py-2 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
               Dimensions estimated via AI. You can manually adjust if needed.
