@@ -437,7 +437,7 @@ function CalculatorSection({
       const objectUrl = URL.createObjectURL(file);
       const preview = new Image();
       preview.onload = () => {
-        const maxSize = 1600;
+        const maxSize = 1024;
         const scale = Math.min(1, maxSize / Math.max(preview.naturalWidth, preview.naturalHeight));
         const canvas = document.createElement('canvas');
         canvas.width = Math.max(1, Math.round(preview.naturalWidth * scale));
@@ -450,7 +450,7 @@ function CalculatorSection({
         }
         context.drawImage(preview, 0, 0, canvas.width, canvas.height);
         URL.revokeObjectURL(objectUrl);
-        resolve(canvas.toDataURL('image/jpeg', 0.82));
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
       };
       preview.onerror = () => {
         URL.revokeObjectURL(objectUrl);
@@ -471,14 +471,28 @@ function CalculatorSection({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image }),
       });
-      const data = await response.json() as {
+      const failureMessage = 'Failed to analyze photo. Please try retaking the photo or entering dimensions manually.';
+      if (!response.ok) {
+        try {
+          await response.text();
+        } catch {
+          // Ignore non-readable error bodies and show the same friendly fallback.
+        }
+        throw new Error(failureMessage);
+      }
+
+      let data: {
         lengthMeters?: number;
         widthMeters?: number;
         ceilingHeightMeters?: number;
         sunlight?: SunExposure;
         error?: string;
       };
-      if (!response.ok) throw new Error(data.error || 'Unable to analyze this photo.');
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error(failureMessage);
+      }
 
       const fromMeters = (meters: number) => dimUnit === 'm' ? meters.toFixed(1) : (meters * 3.28084).toFixed(1);
       setLengthVal(fromMeters(data.lengthMeters ?? 0));
