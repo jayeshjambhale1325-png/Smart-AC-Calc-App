@@ -451,21 +451,16 @@ function CalculatorSection({
           context.drawImage(image, 0, 0, canvas.width, canvas.height);
           const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
           let luminanceTotal = 0;
-          let contrastTotal = 0;
-          let previous = 0;
           for (let index = 0; index < pixels.length; index += 4) {
-            const luminance = (0.2126 * pixels[index] + 0.7152 * pixels[index + 1] + 0.0722 * pixels[index + 2]) / 255;
+            const luminance = 0.2126 * pixels[index] + 0.7152 * pixels[index + 1] + 0.0722 * pixels[index + 2];
             luminanceTotal += luminance;
-            contrastTotal += Math.abs(luminance - previous);
-            previous = luminance;
           }
           const sampleCount = pixels.length / 4;
           const brightness = luminanceTotal / sampleCount;
-          const contrast = contrastTotal / sampleCount;
           URL.revokeObjectURL(objectUrl);
           resolve({
             aspectRatio: image.naturalWidth / image.naturalHeight,
-            brightness: Math.min(1, brightness + contrast * 0.25),
+            brightness,
             preview: canvas.toDataURL('image/jpeg', 0.7),
           });
         };
@@ -477,18 +472,18 @@ function CalculatorSection({
       });
 
       setScanPreview(metrics.preview);
-      await new Promise((resolve) => window.setTimeout(resolve, 1500));
+      await new Promise((resolve) => window.setTimeout(resolve, 1000));
 
       const normalizedRatio = Math.max(0.65, Math.min(2.2, metrics.aspectRatio));
-      const lengthFeet = Math.max(12, Math.min(18, 15 + (normalizedRatio - 1.2) * 3));
-      const widthFeet = Math.max(10, Math.min(14, 12 + (1.2 - normalizedRatio) * 2));
-      const heightFeet = metrics.brightness > 0.68 ? 10 : metrics.brightness < 0.32 ? 9 : 9.5;
+      const lengthFeet = Math.max(14, Math.min(16, 15 + (normalizedRatio - 1.2) * 2));
+      const widthFeet = Math.max(10, Math.min(12, 11 + (1.2 - normalizedRatio) * 1.5));
+      const heightFeet = metrics.brightness > 140 ? 10 : 9.5;
       const toCurrentUnit = (feet: number) => dimUnit === 'm' ? (feet * 0.3048).toFixed(1) : feet.toFixed(1);
 
       setLengthVal(toCurrentUnit(lengthFeet));
       setWidthVal(toCurrentUnit(widthFeet));
       setHeightVal(toCurrentUnit(heightFeet));
-      setSunExposure(metrics.brightness > 0.68 ? 'high' : metrics.brightness < 0.32 ? 'low' : 'moderate');
+      setSunExposure(metrics.brightness > 140 ? 'high' : 'moderate');
       setScanEstimated(true);
       setTouched({});
     } catch (error) {
@@ -582,7 +577,7 @@ function CalculatorSection({
           {scanLoading && (
             <div className="mt-3 flex items-center gap-2 rounded-lg bg-cool-100 px-3 py-2 text-xs font-semibold text-cool-700 dark:bg-cool-800 dark:text-cool-200">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Scanning walls, detecting perspective &amp; sunlight...
+              Analyzing room image...
             </div>
           )}
           {scanPreview && !scanLoading && (
@@ -597,7 +592,7 @@ function CalculatorSection({
           )}
           {scanEstimated && (
             <p className="mt-3 rounded-lg bg-emerald-100 px-3 py-2 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
-              ✨ Dimensions estimated from photo perspective. You can adjust the numbers if needed.
+              Estimated from photo. Adjust values if needed.
             </p>
           )}
           {scanError && <p className="mt-3 text-xs font-medium text-red-500 dark:text-red-400">{scanError}</p>}
