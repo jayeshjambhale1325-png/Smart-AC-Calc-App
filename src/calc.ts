@@ -53,9 +53,10 @@ const DIRECTION_BTU_PCT: Record<RoomDirection, number> = {
 };
 
 const ROOF_BTU_PCT: Record<RoofStatus, number> = {
-  middle: 0,
-  top_insulated: 0.05,
-  top_uninsulated: 0.12,
+  ground: 0,
+  middle: 0.02,
+  top_insulated: 0.12,
+  top_uninsulated: 0.25,
 };
 
 export function calculateTonnage(
@@ -66,7 +67,7 @@ export function calculateTonnage(
   occupants: number,
   priority: Priority,
   roomDirection: RoomDirection = 'none',
-  roofStatus: RoofStatus = 'middle',
+  roofStatus: RoofStatus = 'ground',
 ): CalcResult {
   const areaSqFt = lengthFt * widthFt;
   const volumeCuFt = areaSqFt * ceilingHeightFt;
@@ -139,11 +140,19 @@ export function getRecommendationNote(
   }
   if (roofStatus === 'top_uninsulated') {
     parts.push(
-      'A top-floor uninsulated roof adds significant heat gain, so extra capacity has been included.',
+      'A top-floor or independent-house uninsulated concrete roof exposed to direct sun adds significant heat gain, so extra capacity has been included.',
     );
   } else if (roofStatus === 'top_insulated') {
     parts.push(
-      'A top-floor insulated roof adds moderate heat gain; a small capacity allowance has been included.',
+      'A top-floor or independent-house insulated/shaded roof (or false ceiling) adds moderate heat gain; a capacity allowance has been included.',
+    );
+  } else if (roofStatus === 'middle') {
+    parts.push(
+      'A middle floor with another apartment above adds a small heat allowance.',
+    );
+  } else {
+    parts.push(
+      'A ground floor with cool/shaded space above keeps heat gain minimal.',
     );
   }
   if (occupants > 2) {

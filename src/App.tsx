@@ -372,7 +372,7 @@ function CalculatorSection({
   const [heightVal, setHeightVal] = useState<string>('10');
   const [sunExposure, setSunExposure] = useState<SunExposure>('moderate');
   const [roomDirection, setRoomDirection] = useState<RoomDirection>('none');
-  const [roofStatus, setRoofStatus] = useState<RoofStatus>('middle');
+  const [roofStatus, setRoofStatus] = useState<RoofStatus>('ground');
   const [occupants, setOccupants] = useState<string>('2');
   const [priority, setPriority] = useState<Priority>('electricity');
   const [touched, setTouched] = useState<Record<string, boolean>>({});

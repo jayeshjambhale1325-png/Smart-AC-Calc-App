@@ -2,7 +2,7 @@ export type SunExposure = 'low' | 'moderate' | 'high';
 
 export type RoomDirection = 'north' | 'south' | 'east' | 'west' | 'none';
 
-export type RoofStatus = 'top_uninsulated' | 'top_insulated' | 'middle';
+export type RoofStatus = 'ground' | 'middle' | 'top_insulated' | 'top_uninsulated';
 
 export type Priority =
   | 'electricity'
@@ -23,6 +23,7 @@ export const ROOM_DIRECTIONS: { code: RoomDirection; labelKey: string }[] = [
 ];
 
 export const ROOF_STATUSES: { code: RoofStatus; labelKey: string }[] = [
+  { code: 'ground', labelKey: 'roofGround' },
   { code: 'middle', labelKey: 'roofMiddle' },
   { code: 'top_insulated', labelKey: 'roofTopInsulated' },
   { code: 'top_uninsulated', labelKey: 'roofTopUninsulated' },
