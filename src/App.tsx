@@ -419,7 +419,7 @@ function CalculatorSection({
     setTouched({});
   };
 
-  const handleRoomScan = async (file: File) => {
+  const handleRoomScan = (file: File) => {
     setScanError('');
     setScanEstimated(false);
     if (!file.type.startsWith('image/')) {
@@ -432,65 +432,23 @@ function CalculatorSection({
     }
 
     setScanLoading(true);
-    try {
-      const metrics = await new Promise<{ aspectRatio: number; brightness: number; preview: string }>((resolve, reject) => {
-        const objectUrl = URL.createObjectURL(file);
-        const image = new Image();
-        image.onload = () => {
-          const maxSize = 1024;
-          const scale = Math.min(1, maxSize / Math.max(image.naturalWidth, image.naturalHeight));
-          const canvas = document.createElement('canvas');
-          canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
-          canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
-          const context = canvas.getContext('2d', { willReadFrequently: true });
-          if (!context) {
-            URL.revokeObjectURL(objectUrl);
-            reject(new Error('Your browser could not analyze this image.'));
-            return;
-          }
-          context.drawImage(image, 0, 0, canvas.width, canvas.height);
-          const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
-          let luminanceTotal = 0;
-          for (let index = 0; index < pixels.length; index += 4) {
-            const luminance = 0.2126 * pixels[index] + 0.7152 * pixels[index + 1] + 0.0722 * pixels[index + 2];
-            luminanceTotal += luminance;
-          }
-          const sampleCount = pixels.length / 4;
-          const brightness = luminanceTotal / sampleCount;
-          URL.revokeObjectURL(objectUrl);
-          resolve({
-            aspectRatio: image.naturalWidth / image.naturalHeight,
-            brightness,
-            preview: canvas.toDataURL('image/jpeg', 0.7),
-          });
-        };
-        image.onerror = () => {
-          URL.revokeObjectURL(objectUrl);
-          reject(new Error('This image could not be opened. Please choose another photo.'));
-        };
-        image.src = objectUrl;
-      });
+    setScanPreview(URL.createObjectURL(file));
 
-      setScanPreview(metrics.preview);
-      await new Promise((resolve) => window.setTimeout(resolve, 1000));
+    window.setTimeout(() => {
+      const simulatedLength = 12 + Math.random() * 4;
+      const simulatedWidth = 10 + Math.random() * 3;
+      const simulatedHeight = 10;
+      const toCurrentUnit = (feet: number) =>
+        dimUnit === 'm' ? (feet * 0.3048).toFixed(1) : feet.toFixed(1);
 
-      const normalizedRatio = Math.max(0.65, Math.min(2.2, metrics.aspectRatio));
-      const lengthFeet = Math.max(14, Math.min(16, 15 + (normalizedRatio - 1.2) * 2));
-      const widthFeet = Math.max(10, Math.min(12, 11 + (1.2 - normalizedRatio) * 1.5));
-      const heightFeet = metrics.brightness > 140 ? 10 : 9.5;
-      const toCurrentUnit = (feet: number) => dimUnit === 'm' ? (feet * 0.3048).toFixed(1) : feet.toFixed(1);
-
-      setLengthVal(toCurrentUnit(lengthFeet));
-      setWidthVal(toCurrentUnit(widthFeet));
-      setHeightVal(toCurrentUnit(heightFeet));
-      setSunExposure(metrics.brightness > 140 ? 'high' : 'moderate');
+      setLengthVal(toCurrentUnit(simulatedLength));
+      setWidthVal(toCurrentUnit(simulatedWidth));
+      setHeightVal(toCurrentUnit(simulatedHeight));
+      setSunExposure('moderate');
+      setScanLoading(false);
       setScanEstimated(true);
       setTouched({});
-    } catch (error) {
-      setScanError(error instanceof Error ? error.message : 'Unable to analyze this photo.');
-    } finally {
-      setScanLoading(false);
-    }
+    }, 800);
   };
 
   const handleCalculate = () => {
